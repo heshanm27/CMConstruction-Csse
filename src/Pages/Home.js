@@ -1,10 +1,14 @@
 import {
+  Box,
+  Button,
+  CircularProgress,
   FormControl,
   InputLabel,
   MenuItem,
   NativeSelect,
   Paper,
   Select,
+  Stack,
 } from "@mui/material";
 import { Container } from "@mui/system";
 import { collection, getDocs, query } from "firebase/firestore";
@@ -29,7 +33,7 @@ export default function Home() {
   const [supplierData, setSupplierData] = useState([]);
   const [depotData, setDepotData] = useState([]);
   const [values, setValues] = useState(initialValues);
-
+  const [loading, setLoading] = useState(true);
   const handleChanges = (e) => {
     const { name, value } = e.target;
     setValues({
@@ -40,6 +44,7 @@ export default function Home() {
 
   useEffect(() => {
     const getData = async () => {
+      setLoading(true);
       const q = query(collection(db, "supplier"));
       const itemList = [];
       const supplierList = [];
@@ -68,6 +73,7 @@ export default function Home() {
       setItemData(itemList);
       setSupplierData(supplierList);
       setDepotData(depotList);
+      setLoading(false);
     };
 
     getData();
@@ -78,7 +84,6 @@ export default function Home() {
     {
       title: "Item",
       field: "item",
-
       editComponent: (props) => (
         <FormControl sx={{ mb: 2 }} fullWidth>
           <InputLabel id="demo-simple-select-label">Select Item</InputLabel>
@@ -104,125 +109,145 @@ export default function Home() {
       ),
     },
     { title: "Quantity", field: "quantity", type: "numeric" },
-    { title: "Price", field: "price", type: "numeric" },
+    { title: "Price", field: "price", type: "numeric", editable: "never" },
   ];
   return (
-    <Container maxWidth="sm" disableGutters>
-      <Paper>
-        <form>
-          <FormControl sx={{ mb: 2 }} fullWidth>
-            <InputLabel id="demo-simple-select-label">
-              Select Supplier
-            </InputLabel>
-            <Select
-              labelId="demo-simple-select-label"
-              id="demo-simple-select"
-              name="supplierDetails"
-              value={values.supplierDetails}
-              label="Age"
-              onChange={handleChanges}
-            >
-              {supplierData.map((option) => (
-                <MenuItem key={option.id} value={option}>
-                  {option.supplierName}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+    <Container maxWidth="md" disableGutters>
+      {!loading && (
+        <Paper>
+          <form>
+            <FormControl sx={{ mb: 2 }} fullWidth>
+              <InputLabel id="demo-simple-select-label">
+                Select Supplier
+              </InputLabel>
+              <Select
+                labelId="demo-simple-select-label"
+                id="demo-simple-select"
+                name="supplierDetails"
+                value={values.supplierDetails}
+                label="Age"
+                onChange={handleChanges}
+              >
+                {supplierData.map((option) => (
+                  <MenuItem key={option.id} value={option}>
+                    {option.supplierName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-          <FormControl
-            fullWidth
-            disabled={values.supplierName !== "" ? false : true}
-            sx={{ mt: 2, mb: 2 }}
-          >
-            <InputLabel id="demo-simple-select-label">
-              {" "}
-              Select Supplier Depot
-            </InputLabel>
-            <Select
-              labelId="demo-simple-select-label"
-              id="demo-simple-select"
-              name="depotName"
-              value={values.depotName}
-              label="    Select Supplier Depot"
-              onChange={handleChanges}
+            <FormControl
+              fullWidth
+              disabled={values.supplierDetails !== "" ? false : true}
+              sx={{ mt: 2, mb: 2 }}
             >
-              {depotData
-                ?.filter((item) => item.id === values.supplierDetails?.id)
-                .map((option) =>
-                  option.depots.map((option) => (
-                    <MenuItem key={option.id} value={option}>
-                      {option.depotName}
-                    </MenuItem>
-                  ))
-                )}
-            </Select>
-          </FormControl>
+              <InputLabel id="demo-simple-select-label">
+                {" "}
+                Select Supplier Depot
+              </InputLabel>
+              <Select
+                labelId="demo-simple-select-label"
+                id="demo-simple-select"
+                name="depotName"
+                value={values.depotName}
+                label="    Select Supplier Depot"
+                onChange={handleChanges}
+              >
+                {depotData
+                  ?.filter((item) => item.id === values.supplierDetails?.id)
+                  .map((option) =>
+                    option.depots.map((option) => (
+                      <MenuItem key={option.id} value={option}>
+                        {option.depotName}
+                      </MenuItem>
+                    ))
+                  )}
+              </Select>
+            </FormControl>
 
-          <FormControl fullWidth sx={{ mt: 5, mb: 5 }}>
-            <InputLabel id="demo-simple-select-label"> Site Address</InputLabel>
-            <Select
-              labelId="demo-simple-select-label"
-              id="demo-simple-select"
-              name="depotName"
-              value={values.depotName}
-              label="Age"
-              onChange={handleChanges}
-            >
-              {supplierData.map((option) => (
-                <MenuItem key={option.id} value={option.supplierName}>
-                  {option.supplierName}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </form>
+            <FormControl fullWidth sx={{ mt: 5, mb: 5 }}>
+              <InputLabel id="demo-simple-select-label">
+                {" "}
+                Site Address
+              </InputLabel>
+              <Select
+                labelId="demo-simple-select-label"
+                id="demo-simple-select"
+                name="depotName"
+                value={values.depotName}
+                label="Age"
+                onChange={handleChanges}
+              >
+                {supplierData.map((option) => (
+                  <MenuItem key={option.id} value={option.supplierName}>
+                    {option.supplierName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </form>
 
-        <MaterialTable
-          columns={Columns}
-          data={data}
-          options={{
-            actionsColumnIndex: -1,
-            showTitle: false,
-            search: false,
-            paging: false,
-          }}
-          editable={{
-            onRowAdd: (newData) =>
-              new Promise(async (resolve) => {
-                console.log(newData);
-                setCount((prev) => prev + 1);
-                const response = {
-                  id: count,
-                  item: newData.item.itemName,
-                  quantity: newData.quantity,
-                  price: newData.item.itemPrice,
-                };
-                setData([...data, response]);
-                resolve();
-              }),
-            onRowDelete: (oldData) =>
-              new Promise(async (resolve) => {
-                setData(data.filter((item) => item.id !== oldData.id));
-                resolve();
-              }),
-            onRowUpdate: (newData, oldData) => {
-              return new Promise(async (resolve) => {
-                setData(data.filter((item) => item.id !== oldData.id));
-                console.log(newData);
-                const response = {
-                  id: count,
-                  item: newData.item.itemName,
-                  quantity: newData.quantity,
-                  price: newData.item.itemPrice,
-                };
-                setData((prev) => [...prev, response]);
-                resolve();
-              });
-            },
-          }}
-        />
-      </Paper>
+          <MaterialTable
+            columns={Columns}
+            data={data}
+            icons={{
+              Add: (props) => <Button variant="contained">Add New Item</Button>,
+            }}
+            options={{
+              actionsColumnIndex: -1,
+              showTitle: false,
+              search: false,
+              paging: false,
+              draggable: false,
+            }}
+            editable={{
+              onRowAdd: (newData) =>
+                new Promise(async (resolve) => {
+                  console.log(newData);
+                  setCount((prev) => prev + 1);
+                  const response = {
+                    id: count,
+                    item: newData.item.itemName,
+                    quantity: newData.quantity,
+                    price: newData.item.itemPrice,
+                  };
+                  setData([...data, response]);
+                  resolve();
+                }),
+              onRowDelete: (oldData) =>
+                new Promise(async (resolve) => {
+                  setData(data.filter((item) => item.id !== oldData.id));
+                  resolve();
+                }),
+              onRowUpdate: (newData, oldData) => {
+                return new Promise(async (resolve) => {
+                  setData(data.filter((item) => item.id !== oldData.id));
+                  console.log(newData);
+                  const response = {
+                    id: count,
+                    item: newData.item.itemName,
+                    quantity: newData.quantity,
+                    price: newData.item.itemPrice,
+                  };
+                  setData((prev) => [...prev, response]);
+                  resolve();
+                });
+              },
+            }}
+          />
+        </Paper>
+      )}
+
+      {loading && (
+        <Stack
+          height={"50vh"}
+          direction="column"
+          justifyContent="center"
+          alignItems="center"
+        >
+          <CircularProgress />
+        </Stack>
+      )}
     </Container>
   );
 }
