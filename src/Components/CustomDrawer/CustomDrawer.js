@@ -202,7 +202,7 @@ export default function CustomDrawer() {
               color={theme.palette.primary.main}
               component="div"
             >
-              EduShare
+              C&M <Typography variant="caption">Constructions</Typography>
             </Typography>
           </Stack>
           <Tooltip title="Close">
