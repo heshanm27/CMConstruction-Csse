@@ -32,6 +32,7 @@ export default function Home() {
   const [itemData, setItemData] = useState([]);
   const [supplierData, setSupplierData] = useState([]);
   const [depotData, setDepotData] = useState([]);
+  const [workSiteData, setWorkSiteData] = useState([]);
   const [values, setValues] = useState(initialValues);
   const [loading, setLoading] = useState(true);
   const handleChanges = (e) => {
@@ -43,8 +44,8 @@ export default function Home() {
   };
 
   useEffect(() => {
+    setLoading(true);
     const getData = async () => {
-      setLoading(true);
       const q = query(collection(db, "supplier"));
       const itemList = [];
       const supplierList = [];
@@ -66,17 +67,35 @@ export default function Home() {
           depots: doc.data().supplierDepot,
         };
 
-        itemList.push(item);
-        supplierList.push(supplier);
-        depotList.push(depot);
+        setItemData((prev) => [...prev, item]);
+        setSupplierData((prev) => [...prev, supplier]);
+        setDepotData((prev) => [...prev, depot]);
+        // itemList.push(item);
+        // supplierList.push(supplier);
+        // depotList.push(depot);
       });
-      setItemData(itemList);
-      setSupplierData(supplierList);
-      setDepotData(depotList);
-      setLoading(false);
+      //   setItemData(itemList);
+      //   setSupplierData(supplierList);
+      //   setDepotData(depotList);
+    };
+    const getSitesData = async () => {
+      const q = query(collection(db, "workSites"));
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach((doc) => {
+        let site = {
+          id: doc.id,
+          siteName: doc.data().workSiteName,
+          siteAddress: doc.data().workSiteAddress,
+          sitePhoneNo: doc.data().phoneNo,
+          siteSupervisor: doc.data().Supivisor,
+        };
+        setWorkSiteData((prev) => [...prev, site]);
+      });
     };
 
-    getData();
+    Promise.all([getData(), getSitesData()]).then(() => {
+      setLoading(false);
+    });
   }, []);
 
   const Columns = [
@@ -84,6 +103,12 @@ export default function Home() {
     {
       title: "Item",
       field: "item",
+      validate: (rowData) => {
+        if (rowData.item === undefined || rowData.item === "") {
+          return "Required";
+        }
+        return true;
+      },
       editComponent: (props) => (
         <FormControl sx={{ mb: 2 }} fullWidth>
           <InputLabel id="demo-simple-select-label">Select Item</InputLabel>
@@ -108,15 +133,29 @@ export default function Home() {
         </FormControl>
       ),
     },
-    { title: "Quantity", field: "quantity", type: "numeric" },
+    {
+      title: "Quantity",
+      field: "quantity",
+      type: "numeric",
+      validate: (rowData) => {
+        if (
+          rowData.quantity === undefined ||
+          rowData.quantity === "" ||
+          rowData.quantity <= 0
+        ) {
+          return "Required";
+        }
+        return true;
+      },
+    },
     { title: "Price", field: "price", type: "numeric", editable: "never" },
   ];
   return (
     <Container maxWidth="md" disableGutters>
       {!loading && (
-        <Paper>
+        <Paper sx={{ p: 5 }}>
           <form>
-            <FormControl sx={{ mb: 2 }} fullWidth>
+            <FormControl sx={{ mb: 1 }} fullWidth>
               <InputLabel id="demo-simple-select-label">
                 Select Supplier
               </InputLabel>
@@ -139,7 +178,7 @@ export default function Home() {
             <FormControl
               fullWidth
               disabled={values.supplierDetails !== "" ? false : true}
-              sx={{ mt: 2, mb: 2 }}
+              sx={{ mt: 1, mb: 1 }}
             >
               <InputLabel id="demo-simple-select-label">
                 {" "}
@@ -165,10 +204,10 @@ export default function Home() {
               </Select>
             </FormControl>
 
-            <FormControl fullWidth sx={{ mt: 5, mb: 5 }}>
+            <FormControl fullWidth sx={{ mt: 1, mb: 1 }}>
               <InputLabel id="demo-simple-select-label">
                 {" "}
-                Site Address
+                Select Work Site
               </InputLabel>
               <Select
                 labelId="demo-simple-select-label"
@@ -178,63 +217,82 @@ export default function Home() {
                 label="Age"
                 onChange={handleChanges}
               >
-                {supplierData.map((option) => (
-                  <MenuItem key={option.id} value={option.supplierName}>
-                    {option.supplierName}
+                {workSiteData.map((option) => (
+                  <MenuItem key={option.id} value={option.siteName}>
+                    {option.siteName}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
-          </form>
 
-          <MaterialTable
-            columns={Columns}
-            data={data}
-            icons={{
-              Add: (props) => <Button variant="contained">Add New Item</Button>,
-            }}
-            options={{
-              actionsColumnIndex: -1,
-              showTitle: false,
-              search: false,
-              paging: false,
-              draggable: false,
-            }}
-            editable={{
-              onRowAdd: (newData) =>
-                new Promise(async (resolve) => {
-                  console.log(newData);
-                  setCount((prev) => prev + 1);
-                  const response = {
-                    id: count,
-                    item: newData.item.itemName,
-                    quantity: newData.quantity,
-                    price: newData.item.itemPrice,
-                  };
-                  setData([...data, response]);
-                  resolve();
-                }),
-              onRowDelete: (oldData) =>
-                new Promise(async (resolve) => {
-                  setData(data.filter((item) => item.id !== oldData.id));
-                  resolve();
-                }),
-              onRowUpdate: (newData, oldData) => {
-                return new Promise(async (resolve) => {
-                  setData(data.filter((item) => item.id !== oldData.id));
-                  console.log(newData);
-                  const response = {
-                    id: count,
-                    item: newData.item.itemName,
-                    quantity: newData.quantity,
-                    price: newData.item.itemPrice,
-                  };
-                  setData((prev) => [...prev, response]);
-                  resolve();
-                });
-              },
-            }}
-          />
+            <MaterialTable
+              columns={Columns}
+              data={data}
+              icons={{
+                Add: (props) => (
+                  <Button
+                    variant="contained"
+                    disabled={values.supplierDetails !== "" ? false : true}
+                  >
+                    Add New Item
+                  </Button>
+                ),
+              }}
+              options={{
+                actionsColumnIndex: -1,
+                showTitle: false,
+                search: false,
+                paging: false,
+                draggable: false,
+              }}
+              editable={{
+                onRowAdd: (newData) =>
+                  new Promise(async (resolve) => {
+                    console.log(newData);
+                    setCount((prev) => prev + 1);
+                    const response = {
+                      id: count,
+                      item: newData.item.itemName,
+                      quantity: newData.quantity,
+                      price: newData.item.itemPrice,
+                      total: newData.quantity * newData.item.itemPrice,
+                    };
+                    setData([...data, response]);
+                    resolve();
+                  }),
+                onRowDelete: (oldData) =>
+                  new Promise(async (resolve) => {
+                    setData(data.filter((item) => item.id !== oldData.id));
+                    resolve();
+                  }),
+                onRowUpdate: (newData, oldData) => {
+                  return new Promise(async (resolve) => {
+                    setData(data.filter((item) => item.id !== oldData.id));
+                    console.log(newData);
+                    const response = {
+                      id: count,
+                      item: newData.item.itemName,
+                      quantity: newData.quantity,
+                      price: newData.item.itemPrice,
+                    };
+                    setData((prev) => [...prev, response]);
+                    resolve();
+                  });
+                },
+              }}
+            />
+
+            <Stack
+              direction="row"
+              justifyContent="center"
+              alignItems="center"
+              sx={{ mt: 4, mb: 4 }}
+            >
+              <Button variant="contained" type="submit">
+                Place Order
+              </Button>
+            </Stack>
+          </form>
         </Paper>
       )}
 
