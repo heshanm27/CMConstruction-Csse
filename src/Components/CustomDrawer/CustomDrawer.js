@@ -232,6 +232,12 @@ export default function CustomDrawer() {
               icon={<MeetingRoomOutlinedIcon />}
               path="/"
             />
+            <NavListitem
+              label="Orders"
+              activeIcon={<MeetingRoomIcon />}
+              icon={<MeetingRoomOutlinedIcon />}
+              path="/orders"
+            />
             {/* <CustomListCollapse
                 TitleIcon={<SchoolIcon />}
                 TitleText="Education"

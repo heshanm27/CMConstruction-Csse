@@ -10,6 +10,7 @@ import { useDispatch } from "react-redux";
 
 import Home from "../Pages/Home";
 import CustomDrawer from "../Components/CustomDrawer/CustomDrawer";
+import PurchaseOrders from "../Pages/PurchaseOrders";
 const theme = createTheme({
   palette: {
     primary: {
@@ -68,6 +69,7 @@ function App() {
           <Route path="/signin" element={<SignIn />} /> */}
           <Route element={<CustomDrawer />}>
             <Route path="/" element={<Home />} />
+            <Route path="/orders" element={<PurchaseOrders />} />
           </Route>
         </Routes>
       </Box>

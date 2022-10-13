@@ -1,20 +1,21 @@
+import { LoadingButton } from "@mui/lab";
 import {
-  Box,
   Button,
   CircularProgress,
   FormControl,
+  FormHelperText,
   InputLabel,
   MenuItem,
-  NativeSelect,
   Paper,
   Select,
   Stack,
+  TextField,
 } from "@mui/material";
 import { Container } from "@mui/system";
 import { addDoc, collection, getDocs, query } from "firebase/firestore";
 import MaterialTable from "material-table";
 import React, { useEffect, useState } from "react";
-import CustomSelect from "../Components/CustomSelect/CustomSelect";
+import CustomSnackBar from "../Components/CustomSnackBar/CustomSnackBar";
 import { db } from "../Firebase/Firebase";
 import { idGenarator } from "../Utill/Utill";
 
@@ -26,6 +27,7 @@ const initialValues = {
   orderID: idGenarator("ORD"),
   depotDetails: "",
   workSiteDetails: "",
+  comments: "",
 };
 
 export default function Home() {
@@ -37,6 +39,15 @@ export default function Home() {
   const [workSiteData, setWorkSiteData] = useState([]);
   const [values, setValues] = useState(initialValues);
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState(initialValues);
+  const [btnLoading, setBtnLoading] = useState(false);
+  const [notify, setNotify] = useState({
+    isOpen: false,
+    message: "",
+    type: "error",
+    title: "",
+  });
+
   const handleChanges = (e) => {
     const { name, value } = e.target;
     setValues({
@@ -45,20 +56,64 @@ export default function Home() {
     });
   };
 
+  function validate() {
+    console.log("lengeth", data.length);
+    let temp = {};
+    temp.orderedItems =
+      data?.length > 0
+        ? ""
+        : setNotify({
+            isOpen: true,
+            message: "Please add items to the order",
+            type: "error",
+          });
+    temp.supplierDetails = values.supplierDetails
+      ? ""
+      : "Please Select Supplier";
+    temp.depotDetails = values.depotDetails ? "" : "Please Select Depot";
+    temp.workSiteDetails = values.workSiteDetails
+      ? ""
+      : "Please Select Work Site";
+
+    setErrors({
+      ...temp,
+    });
+    return Object.values(temp).every((x) => x === "");
+  }
+
   const onSubmit = async (e) => {
     e.preventDefault();
-    const dataObj = {
-      supplierDetails: values.supplierDetails,
-      orderedItems: data,
-      orderDate: values.orderDate,
-      orderStatus: "Pending",
-      orderID: values.orderID,
-      depotDetails: values.depotDetails,
-      workSiteDetails: values.workSiteDetails,
-    };
 
-    console.log("dataObj", dataObj);
-    const docRef = await addDoc(collection(db, "orders"), values);
+    setBtnLoading(true);
+    if (validate()) {
+      const dataObj = {
+        supplierDetails: values.supplierDetails,
+        orderedItems: data,
+        orderDate: values.orderDate,
+        orderStatus: "Pending",
+        orderID: values.orderID,
+        depotDetails: values.depotDetails,
+        workSiteDetails: values.workSiteDetails,
+      };
+      try {
+        await addDoc(collection(db, "orders"), dataObj);
+        setNotify({
+          isOpen: true,
+          message: "Order Added Successfully",
+          type: "success",
+        });
+        setBtnLoading(false);
+      } catch (e) {
+        setBtnLoading(false);
+        setNotify({
+          isOpen: true,
+          message: "Error adding document: " + e,
+          type: "error",
+        });
+      }
+    } else {
+      setBtnLoading(false);
+    }
   };
   useEffect(() => {
     setLoading(true);
@@ -165,7 +220,11 @@ export default function Home() {
       {!loading && (
         <Paper sx={{ p: 5 }}>
           <form onSubmit={onSubmit}>
-            <FormControl sx={{ mb: 1 }} fullWidth>
+            <FormControl
+              sx={{ mb: 1 }}
+              fullWidth
+              error={errors.supplierDetails !== "" ? true : false}
+            >
               <InputLabel id="demo-simple-select-label">
                 Select Supplier
               </InputLabel>
@@ -182,12 +241,14 @@ export default function Home() {
                   </MenuItem>
                 ))}
               </Select>
+              <FormHelperText>{errors.supplierDetails}</FormHelperText>
             </FormControl>
 
             <FormControl
               fullWidth
               disabled={values.supplierDetails !== "" ? false : true}
               sx={{ mt: 1, mb: 1 }}
+              error={errors.depotDetails !== "" ? true : false}
             >
               <InputLabel id="demo-simple-select-label">
                 {" "}
@@ -210,9 +271,14 @@ export default function Home() {
                     ))
                   )}
               </Select>
+              <FormHelperText>{errors.depotDetails}</FormHelperText>
             </FormControl>
 
-            <FormControl fullWidth sx={{ mt: 1, mb: 1 }}>
+            <FormControl
+              fullWidth
+              sx={{ mt: 1, mb: 1 }}
+              error={errors.workSiteDetails !== "" ? true : false}
+            >
               <InputLabel id="demo-simple-select-label">
                 {" "}
                 Select Work Site
@@ -230,6 +296,7 @@ export default function Home() {
                   </MenuItem>
                 ))}
               </Select>
+              <FormHelperText>{errors.workSiteDetails}</FormHelperText>
             </FormControl>
 
             <MaterialTable
@@ -281,6 +348,7 @@ export default function Home() {
                       item: newData.item.itemName,
                       quantity: newData.quantity,
                       price: newData.item.itemPrice,
+                      total: newData.quantity * newData.item.itemPrice,
                     };
                     setData((prev) => [...prev, response]);
                     resolve();
@@ -288,16 +356,34 @@ export default function Home() {
                 },
               }}
             />
-
+            <TextField
+              sx={{ mt: 4, mb: 1 }}
+              id="standard-multiline-static"
+              label="Comments"
+              name="comments"
+              fullWidth
+              multiline
+              rows={4}
+              onChange={handleChanges}
+              variant="standard"
+            />
             <Stack
               direction="row"
               justifyContent="center"
               alignItems="center"
               sx={{ mt: 4, mb: 2 }}
             >
-              <Button variant="contained" type="submit">
+              <LoadingButton
+                type="submit"
+                fullWidth
+                variant="contained"
+                sx={{ mt: 3 }}
+                loading={btnLoading}
+                size="large"
+                loadingPosition="center"
+              >
                 Place Order
-              </Button>
+              </LoadingButton>
             </Stack>
           </form>
         </Paper>
@@ -313,6 +399,7 @@ export default function Home() {
           <CircularProgress />
         </Stack>
       )}
+      <CustomSnackBar notify={notify} setNotify={setNotify} />
     </Container>
   );
 }

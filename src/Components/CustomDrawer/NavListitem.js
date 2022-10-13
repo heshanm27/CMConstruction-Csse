@@ -51,8 +51,8 @@ function NavListitem({ label, icon, activeIcon, path, onClick }) {
           //   if (path === "logout") {
           //     signOut(auth);
           //   } else {
-          //     onClick();
-          //     navigate(path);
+
+          navigate(path);
           //   }
         }}
       >
