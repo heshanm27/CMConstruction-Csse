@@ -11,19 +11,21 @@ import {
   Stack,
 } from "@mui/material";
 import { Container } from "@mui/system";
-import { collection, getDocs, query } from "firebase/firestore";
+import { addDoc, collection, getDocs, query } from "firebase/firestore";
 import MaterialTable from "material-table";
 import React, { useEffect, useState } from "react";
 import CustomSelect from "../Components/CustomSelect/CustomSelect";
 import { db } from "../Firebase/Firebase";
+import { idGenarator } from "../Utill/Utill";
 
 const initialValues = {
   supplierDetails: "",
   orderedItems: [],
   orderDate: new Date(),
   orderStatus: "",
-  orderID: "",
-  depotName: "",
+  orderID: idGenarator("ORD"),
+  depotDetails: "",
+  workSiteDetails: "",
 };
 
 export default function Home() {
@@ -43,18 +45,32 @@ export default function Home() {
     });
   };
 
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    const dataObj = {
+      supplierDetails: values.supplierDetails,
+      orderedItems: data,
+      orderDate: values.orderDate,
+      orderStatus: "Pending",
+      orderID: values.orderID,
+      depotDetails: values.depotDetails,
+      workSiteDetails: values.workSiteDetails,
+    };
+
+    console.log("dataObj", dataObj);
+    const docRef = await addDoc(collection(db, "orders"), values);
+  };
   useEffect(() => {
     setLoading(true);
     const getData = async () => {
       const q = query(collection(db, "supplier"));
-      const itemList = [];
-      const supplierList = [];
-      const depotList = [];
       const querySnapshot = await getDocs(q);
       querySnapshot.forEach((doc) => {
         let supplier = {
           id: doc.id,
           supplierName: doc.data().supplierName,
+          supplierContact: doc.data().contactNo,
+          supplierEmail: doc.data().Email,
         };
 
         let item = {
@@ -70,13 +86,7 @@ export default function Home() {
         setItemData((prev) => [...prev, item]);
         setSupplierData((prev) => [...prev, supplier]);
         setDepotData((prev) => [...prev, depot]);
-        // itemList.push(item);
-        // supplierList.push(supplier);
-        // depotList.push(depot);
       });
-      //   setItemData(itemList);
-      //   setSupplierData(supplierList);
-      //   setDepotData(depotList);
     };
     const getSitesData = async () => {
       const q = query(collection(db, "workSites"));
@@ -154,7 +164,7 @@ export default function Home() {
     <Container maxWidth="md" disableGutters>
       {!loading && (
         <Paper sx={{ p: 5 }}>
-          <form>
+          <form onSubmit={onSubmit}>
             <FormControl sx={{ mb: 1 }} fullWidth>
               <InputLabel id="demo-simple-select-label">
                 Select Supplier
@@ -164,7 +174,6 @@ export default function Home() {
                 id="demo-simple-select"
                 name="supplierDetails"
                 value={values.supplierDetails}
-                label="Age"
                 onChange={handleChanges}
               >
                 {supplierData.map((option) => (
@@ -187,9 +196,8 @@ export default function Home() {
               <Select
                 labelId="demo-simple-select-label"
                 id="demo-simple-select"
-                name="depotName"
-                value={values.depotName}
-                label="    Select Supplier Depot"
+                name="depotDetails"
+                value={values.depotDetails}
                 onChange={handleChanges}
               >
                 {depotData
@@ -212,13 +220,12 @@ export default function Home() {
               <Select
                 labelId="demo-simple-select-label"
                 id="demo-simple-select"
-                name="depotName"
-                value={values.depotName}
-                label="Age"
+                name="workSiteDetails"
+                value={values.workSiteDetails}
                 onChange={handleChanges}
               >
                 {workSiteData.map((option) => (
-                  <MenuItem key={option.id} value={option.siteName}>
+                  <MenuItem key={option.id} value={option}>
                     {option.siteName}
                   </MenuItem>
                 ))}
@@ -286,7 +293,7 @@ export default function Home() {
               direction="row"
               justifyContent="center"
               alignItems="center"
-              sx={{ mt: 4, mb: 4 }}
+              sx={{ mt: 4, mb: 2 }}
             >
               <Button variant="contained" type="submit">
                 Place Order
